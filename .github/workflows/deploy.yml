@@ -71,5 +71,3 @@ jobs:
 
             # Remove old, unused docker images
             docker image prune -a -f
-
-            sudo systemctl restart nginx || true
