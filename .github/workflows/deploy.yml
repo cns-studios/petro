@@ -36,10 +36,40 @@ jobs:
           username: ${{ secrets.SSH_USERNAME }}
           key: ${{ secrets.SSH_KEY }}
           script: |
-            curl -X POST http://localhost:3000/shutdown || true
+            # Create or update the docker-compose.yml file
+            cat << EOF > docker-compose.yml
+            version: '3.8'
+            services:
+              petro:
+                image: ghcr.io/${{ github.repository }}/petro:latest
+                ports:
+                  - "8084:3000"
+                volumes:
+                  - petro-db:/usr/src/app/db
+                restart: unless-stopped
+            volumes:
+              petro-db:
+            EOF
+
+            # Login to ghcr.io to pull the image
+            echo ${{ secrets.GITHUB_TOKEN }} | docker login ghcr.io -u ${{ github.actor }} --password-stdin
+
+            # Attempt graceful shutdown of the currently running container
+            curl -X POST http://localhost:8084/shutdown || curl -X POST http://localhost:3000/shutdown || true
             sleep 10
-            docker pull ghcr.io/${{ github.repository }}/petro:latest
+
+            # Stop any running containers from previous deployments (both compose and non-compose)
             docker stop petro || true
             docker rm petro || true
-            docker run -d --name petro -p 3000:3000 ghcr.io/${{ github.repository }}/petro:latest
+            docker-compose down || true
+
+            # Pull the latest image for the service
+            docker-compose pull petro
+
+            # Start the service in detached mode
+            docker-compose up -d
+
+            # Remove old, unused docker images
+            docker image prune -a -f
+
             sudo systemctl restart nginx || true

@@ -25,7 +25,8 @@ window.addEventListener('DOMContentLoaded', () => {
 });
 
 function connectBattle(battleId, username, pin) {
-    ws = new WebSocket(`ws://${window.location.host}/battle?battleId=${battleId}&username=${encodeURIComponent(username)}&pin=${encodeURIComponent(pin)}`);
+    const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
+    ws = new WebSocket(`${protocol}//${window.location.host}/battle?battleId=${battleId}&username=${encodeURIComponent(username)}&pin=${encodeURIComponent(pin)}`);
     
     ws.onopen = () => {
         console.log('Connected to battle');

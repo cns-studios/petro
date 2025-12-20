@@ -1,0 +1,13 @@
+version: '3.8'
+
+services:
+  petro:
+    build: .
+    ports:
+      - "8084:3000"
+    volumes:
+      - petro-db:/usr/src/app/db
+    restart: unless-stopped
+
+volumes:
+  petro-db:

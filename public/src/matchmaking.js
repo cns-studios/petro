@@ -39,7 +39,8 @@ window.addEventListener('DOMContentLoaded', () => {
 function connectWebSocket(username, pin) {
     console.log('Connecting to matchmaking...', { username, pin });
     
-    ws = new WebSocket(`ws://${window.location.host}?username=${encodeURIComponent(username)}&pin=${encodeURIComponent(pin)}`);
+    const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
+    ws = new WebSocket(`${protocol}//${window.location.host}?username=${encodeURIComponent(username)}&pin=${encodeURIComponent(pin)}`);
 
     ws.onopen = () => {
         console.log('Connected to server. Joining matchmaking...');
