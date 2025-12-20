@@ -86,7 +86,8 @@ const BUFF_DESCRIPTIONS = {
 function connectWebSocket(username, pin) {
     console.log('Attempting to connect with:', { username, pin }); // DEBUG
     
-    ws = new WebSocket(`ws://${window.location.host}?username=${encodeURIComponent(username)}&pin=${encodeURIComponent(pin)}`);
+    const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
+    ws = new WebSocket(`${protocol}//${window.location.host}?username=${encodeURIComponent(username)}&pin=${encodeURIComponent(pin)}`);
 
     ws.onopen = () => {
         console.log('Connected to the server.');
