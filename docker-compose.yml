@@ -5,6 +5,8 @@ services:
     build: .
     ports:
       - "8084:3000"
+    environment:
+      - NODE_ENV=development
     volumes:
       - petro-db:/usr/src/app/db
     restart: unless-stopped
