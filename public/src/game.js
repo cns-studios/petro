@@ -414,9 +414,10 @@ const collectionPage = document.getElementById('collection');
 
 gotoHomebtn.style.display = 'none';
 
-invPage.style.display = 'none';
-shopPage.style.display = 'none';
-settingsPage.style.display = 'none';
+    invPage.style.display = 'none';
+    shopPage.style.display = 'none';
+    settingsPage.style.display = 'none';
+    document.body.classList.remove('menu-active'); // Ensure menu-active is off initially
 
 gotoHomebtn.addEventListener('click', () => {
     homePage.style.display = 'block';
@@ -430,6 +431,7 @@ gotoHomebtn.addEventListener('click', () => {
     shopPage.style.display = 'none';
     settingsPage.style.display = 'none';
     collectionPage.style.display = 'none';
+    document.body.classList.remove('menu-active'); // Remove menu-active when returning home
 });
 
 gotoInvbtn.addEventListener('click', () => {
@@ -440,6 +442,7 @@ gotoInvbtn.addEventListener('click', () => {
 
     gotoShopbtn.style.display = 'none';
     gotoInvbtn.style.display = 'none';
+    document.body.classList.add('menu-active'); // Add menu-active when inventory is open
 });
 
 gotoShopbtn.addEventListener('click', () => {
@@ -450,6 +453,7 @@ gotoShopbtn.addEventListener('click', () => {
 
     gotoShopbtn.style.display = 'none';
     gotoInvbtn.style.display = 'none';
+    document.body.classList.add('menu-active'); // Add menu-active when shop is open
 });
 
 gotoSettingsbtn.addEventListener('click', () => {
@@ -461,4 +465,5 @@ gotoSettingsbtn.addEventListener('click', () => {
     gotoShopbtn.style.display = 'none';
     gotoSettingsbtn.style.display = 'none';
     gotoInvbtn.style.display = 'none';
+    document.body.classList.add('menu-active'); // Add menu-active when settings are open
 });

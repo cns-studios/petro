@@ -527,6 +527,8 @@ header h1 {
     top: 1rem;
     right: 1rem;
     display: flex;
+    flex-direction: column;
+    align-items: center;
     gap: 1.5rem;
     color: var(--accent-gold);
     font-weight: 500;
@@ -535,12 +537,6 @@ header h1 {
     font-size: 0.8rem;
 }
 
-
-.stats {
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-}
 
 #money {
     color: #ffdd0f;
@@ -807,4 +803,18 @@ header h1 {
     .shop-btn-stock {
         text-align: center;
     }
+}
+
+/* PLAY BUTTON CONTAINER */
+.play-btn-container {
+    position: fixed;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    z-index: 999; /* Ensure it's above other elements */
+    display: block; /* Default to visible */
+}
+
+body.menu-active .play-btn-container {
+    display: none; /* Hide when any menu is active */
 }
