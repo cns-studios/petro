@@ -3,9 +3,10 @@ const WebSocket = require('ws');
 const { spawn } = require('child_process');
 const path = require('path');
 const express = require('express');
-const sqlite3 = require('sqlite3').verbose();
+const cookieParser = require('cookie-parser');
+const axios = require('axios');
 const url = require('url');
-const fs = require('fs');
+const cookie = require('cookie');
 const logger = require('./logger');
 
 const dotenv = require('dotenv');
@@ -22,48 +23,42 @@ const server = http.createServer(app);
 const wss = new WebSocket.Server({ noServer: true });
 const wss_battle = new WebSocket.Server({ noServer: true });
 
-const bannedNames = fs.readFileSync(path.join(__dirname, 'bannednames.txt'), 'utf-8').split('\n');
-
-for (let i = 0; i < bannedNames.length; i++) {
-    if (bannedNames[i] === '') {
-        delete bannedNames[i];
-    } else if (bannedNames[i].startsWith('#')) {
-        delete bannedNames[i];
-    } else {
-        bannedNames[i] = bannedNames[i].trim();
-    }
-}
-
-if (!fs.existsSync(path.join(__dirname, 'db'))) {
-    fs.mkdirSync(path.join(__dirname, 'db'));
-}
-
-const db = new sqlite3.Database(path.join(__dirname, 'db', 'users.db'), (err) => {
-    if (err) {
-        logger.error('Error opening database', err.message);
-    } else {
-        logger.info('Connected to the SQLite database.');
-        db.run(`CREATE TABLE IF NOT EXISTS users (
-            username TEXT PRIMARY KEY,
-            pin TEXT NOT NULL,
-            game_state TEXT
-        )`);
-    }
-});if (!fs.existsSync(path.join(__dirname, 'db', 'users.db'))) {
-    logger.info('No database found, creating a new one.');
-    db.serialize(() => {
-        db.run(`CREATE TABLE IF NOT EXISTS users (
-            username TEXT PRIMARY KEY,
-            pin TEXT NOT NULL,
-            game_state TEXT
-        )`);
-    });
-}
-
 const gameInstances = new Map();
 
 app.use(express.json());
+app.use(cookieParser());
 app.use(express.static(path.join(__dirname, 'public')));
+
+// Middleware to check for the auth token and redirect if it's not present.
+const authMiddleware = async (req, res, next) => {
+    // Allow access to static assets without authentication
+    if (req.path.startsWith('/assets/') || req.path.startsWith('/css/') || req.path.startsWith('/js/')) {
+        return next();
+    }
+
+    const token = req.cookies.auth_token;
+
+    if (!token) {
+        const redirectUri = encodeURIComponent(`https://petro.cns-studios.com${req.originalUrl}`);
+        return res.redirect(`${process.env.AUTH_SERVICE_URL}/login?redirect_uri=${redirectUri}`);
+    }
+
+    try {
+        const response = await axios.get(`${process.env.AUTH_SERVICE_URL}/api/me`, {
+            headers: {
+                Cookie: `auth_token=${token}`
+            }
+        });
+        req.user = response.data;
+        next();
+    } catch (error) {
+        logger.error('Error authenticating user:', error.message);
+        const redirectUri = encodeURIComponent(`https://petro.cns-studios.com${req.originalUrl}`);
+        return res.redirect(`${process.env.AUTH_SERVICE_URL}/login?redirect_uri=${redirectUri}`);
+    }
+};
+
+app.use(authMiddleware);
 
 function createGameProcess(username) {
     if (connectionAttempts.has(username)) {
@@ -103,62 +98,6 @@ function createGameProcess(username) {
     return gameProcess;
 }
 
-app.post('/signup', async (req, res) => {
-    const { username } = req.body;
-    if (!username) {
-        return res.status(400).json({ message: 'Username is required.' });
-    }
-    for (let i = 0; i < bannedNames.length; i++) {
-        if (username.toLowerCase() === bannedNames[i]) {
-            logger.warn(`[Server] User ${username} is banned.`);
-            return res.status(400).json({ message: 'Username is banned.' });
-        }
-    }
-    if (!/^[a-zA-Z0-9]+$/.test(username)) {
-        if (devMode && username.startsWith('dev_')) {
-            
-        } else {
-            return res.status(400).json({ message: 'Username must only contain letters and numbers.' });
-        }
-    }
-
-    let pin;
-    if (username.startsWith('dev_') && devMode) {
-        pin = "0"
-    } else {
-        pin = Math.floor(1000 + Math.random() * 9000).toString();
-    }
-
-    db.run('INSERT INTO users (username, pin) VALUES (?, ?)', [username, pin], function(err) {
-        if (err) {
-            logger.error('Signup error:', err.message);
-            return res.status(409).json({ message: 'Username already taken.' });
-        }
-        logger.info(`[Server] New user created: ${username}`);
-        res.status(201).json({ username, pin });
-    });
-});
-
-app.post('/login', (req, res) => {
-    const { username, pin } = req.body;
-    if (!username || !pin) {
-        return res.status(400).json({ message: 'Username and PIN are required.' });
-    }
-
-    db.get('SELECT * FROM users WHERE username = ? AND pin = ?', [username, pin], (err, row) => {
-        if (err) {
-            logger.error('Login error:', err.message);
-            return res.status(500).json({ message: 'Internal server error.' });
-        }
-        if (row) {
-            logger.info(`[Server] User logged in: ${username}`);
-            res.status(200).json({ message: 'Login successful.' });
-        } else {
-            res.status(401).json({ message: 'Invalid username or PIN.' });
-        }
-    });
-});
-
 app.post('/shutdown', (req, res) => {
     logger.info('[Server] Shutdown initiated.');
     isShuttingDown = true;
@@ -180,198 +119,175 @@ app.post('/shutdown', (req, res) => {
 });
 
 wss.on('connection', (ws, req) => {
+    const { username } = req.user; // This will be populated by our auth middleware
+    logger.info(`[Game WS] New connection from ${username}`);
 
-    // Battle ws Server
-    const wss_battle = new WebSocket.Server({ noServer: true });
+    let gameProcess = createGameProcess(username);
 
-    wss_battle.on('connection', (ws, req, battleId, username) => {
-        logger.info(`[Battle WS] Player ${username} connected to battle #${battleId}`);
-
-        const battle = activeBattles.get(parseInt(battleId));
-        if (!battle) {
-            logger.warn(`[Battle WS] Battle #${battleId} not found`);
-            ws.close(1008, 'Battle not found');
-            return;
+    // Load game state from auth service
+    axios.get(`${process.env.AUTH_SERVICE_URL}/api/data/petro`, {
+        headers: { Cookie: `auth_token=${req.cookies.auth_token}` }
+    }).then(response => {
+        if (response.data && response.data.game_state) {
+            gameProcess.stdin.write(JSON.stringify({ type: 'load_state', state: response.data.game_state }) + '\n');
         }
-
-        const battleProcess = battle.process;
-
-        const onData = (data) => {
-            const output = data.toString();
-            output.split('\n').filter(line => line.trim() !== '').forEach(line => {
-                try {
-                    const parsed = JSON.parse(line);
-                    // Send updates to the specific player or broadcast to both
-                    if (ws.readyState === WebSocket.OPEN) {
-                        logger.info(`[Battle -> Client] Battle #${battleId}: ${line.trim()}`);
-                        ws.send(line);
-                    }
-                } catch (e) {
-                    logger.error(`[Battle] Failed to parse output: ${line}`);
-                }
-            });
-        };
-
-        const onProcessClose = (code) => {
-            logger.info(`[Battle WS] Battle #${battleId} process closed`);
-            if (ws.readyState === WebSocket.OPEN) {
-                ws.send(JSON.stringify({ type: 'battle_ended', message: 'Battle ended' }));
-                ws.close(1000, 'Battle ended');
-            }
-            cleanup();
-        };
-
-        const cleanup = () => {
-            battleProcess.stdout.removeListener('data', onData);
-            battleProcess.removeListener('close', onProcessClose);
-        };
-
-        battleProcess.stdout.on('data', onData);
-        battleProcess.once('close', onProcessClose);
-
-        ws.on('message', (message) => {
-            const command = message.toString();
-            logger.info(`[Battle Client -> Server] ${username} in battle #${battleId}: ${command}`);
-            if (!battleProcess.killed) {
-                battleProcess.stdin.write(`${username}:${command}\n`);
-            }
-        });
-
-        ws.on('close', () => {
-            logger.info(`[Battle WS] ${username} disconnected from battle #${battleId}`);
-            cleanup();
-        });
-
-        ws.on('error', (error) => {
-            logger.error(`[Battle WS] Error for ${username} in battle #${battleId}:`, error);
-            cleanup();
-        });
+    }).catch(error => {
+        if (error.response && error.response.status !== 404) {
+            logger.error('Error loading game state:', error.message);
+        }
     });
 
-    
-    const { query } = url.parse(req.url, true);
-    const { username, pin } = query;
+    gameProcess.stdout.on('data', (data) => {
+        const message = data.toString();
+        try {
+            const parsed = JSON.parse(message);
+            if (parsed.type === 'save_state') {
+                axios.post(`${process.env.AUTH_SERVICE_URL}/api/data/petro`, { game_state: parsed.state }, {
+                    headers: { Cookie: `auth_token=${req.cookies.auth_token}` }
+                }).catch(error => {
+                    logger.error('Error saving game state:', error.message);
+                });
+            } else {
+                ws.send(message);
+            }
+        } catch (e) {
+            ws.send(message); // Send non-JSON messages to client
+        }
+    });
 
-    logger.info(`[Server] New WebSocket connection attempt for user: ${username}`);
+    ws.on('message', (message) => {
+        const command = message.toString();
+        logger.info(`[Client -> Server] (User: ${username}) Received command: ${command}`);
 
-    if (!username || !pin) {
-        logger.warn('[Server] WebSocket connection rejected: Missing credentials.');
-        ws.close(1008, 'Missing credentials');
+        if (command === "join_matchmaking") {
+            logger.info(`[Matchmaking] ${username} joining matchmaking`);
+
+            const matchResult = findMatch(username);
+
+            if (matchResult.matched) {
+                // Create battle process
+                const battleProcess = createBattleProcess(
+                    matchResult.battleId,
+                    username,
+                    matchResult.opponent
+                );
+
+                ws.send(JSON.stringify({
+                    type: 'match_found',
+                    battleId: matchResult.battleId,
+                    opponent: matchResult.opponent
+                }));
+            } else {
+                // Add ws reference to queue
+                const queueEntry = matchmakingQueue.find(p => p.username === username);
+                if (queueEntry) {
+                    queueEntry.ws = ws;
+                }
+
+                if (matchResult.reason === 'disabled') {
+                    ws.send(JSON.stringify({
+                        type: 'matchmaking_disabled',
+                        message: 'Matchmaking is temporarily disabled for a server update. Please try again in a moment.'
+                    }));
+                } else {
+                    ws.send(JSON.stringify({
+                        type: 'searching',
+                        message: 'Searching for opponent...',
+                        queuePosition: matchmakingQueue.length
+                    }));
+                }
+            }
+        } else if (command === "leave_matchmaking") {
+            const index = matchmakingQueue.findIndex(p => p.username === username);
+            if (index !== -1) {
+                matchmakingQueue.splice(index, 1);
+                logger.info(`[Matchmaking] ${username} left queue`);
+                ws.send(JSON.stringify({
+                    type: 'left_queue',
+                    message: 'Left matchmaking queue'
+                }));
+            }
+        } else if (!gameProcess.killed) {
+            gameProcess.stdin.write(command + '\n');
+        }
+    });
+
+    ws.on('close', () => {
+        logger.info(`[Game WS] Connection closed for ${username}`);
+    });
+
+    ws.on('error', (error) => {
+        logger.error(`[Game WS] Error for ${username}:`, error);
+    });
+});
+
+wss_battle.on('connection', (ws, req, battleId, username) => {
+    logger.info(`[Battle WS] Player ${username} connected to battle #${battleId}`);
+
+    const battle = activeBattles.get(parseInt(battleId));
+    if (!battle) {
+        logger.warn(`[Battle WS] Battle #${battleId} not found`);
+        ws.close(1008, 'Battle not found');
         return;
     }
 
-    db.get('SELECT * FROM users WHERE username = ? AND pin = ?', [username, pin], (err, user) => {
-        if (err || !user) {
-            logger.warn(`[Server] WebSocket connection rejected: Invalid credentials for user ${username}.`);
-            ws.close(1008, 'Invalid credentials');
-            return;
-        }
+    const battleProcess = battle.process;
 
-        logger.info(`[Server] WebSocket connected for user: ${username}`);
-
-        let gameProcess = gameInstances.get(username);
-        if (!gameProcess || gameProcess.killed) {
-            logger.info(`[Server] No live game process for ${username}. Creating new one.`);
-            gameProcess = createGameProcess(username);
-        }
-
-        const onData = (data) => {
-            const output = data.toString();
-            output.split('\n').filter(line => line.trim() !== '').forEach(line => {
+    const onData = (data) => {
+        const output = data.toString();
+        output.split('\n').filter(line => line.trim() !== '').forEach(line => {
+            try {
+                const parsed = JSON.parse(line);
+                // Send updates to the specific player or broadcast to both
                 if (ws.readyState === WebSocket.OPEN) {
-                    logger.info(`[Game -> Server] (User: ${username}): ${line.trim()}`);
+                    logger.info(`[Battle -> Client] Battle #${battleId}: ${line.trim()}`);
                     ws.send(line);
                 }
-            });
-        };
-
-        const onProcessClose = (code) => {
-            logger.info(`[Server] Game process closed unexpectedly for ${username}`);
-            if (ws.readyState === WebSocket.OPEN) {
-                ws.close(1011, 'Game process terminated');
-            }
-            cleanup();
-        };
-
-        const cleanup = () => {
-            gameProcess.stdout.removeListener('data', onData);
-            gameProcess.removeListener('close', onProcessClose);
-        };
-
-        gameProcess.stdout.on('data', onData);
-        gameProcess.once('close', onProcessClose);
-
-        ws.on('message', (message) => {
-            const command = message.toString();
-            logger.info(`[Client -> Server] (User: ${username}) Received command: ${command}`);
-            
-            if (command === "join_matchmaking") {
-                logger.info(`[Matchmaking] ${username} joining matchmaking`);
-                
-                const matchResult = findMatch(username);
-                
-                if (matchResult.matched) {
-                    // Create battle process
-                    const battleProcess = createBattleProcess(
-                        matchResult.battleId, 
-                        username, 
-                        matchResult.opponent
-                    );
-                    
-                    ws.send(JSON.stringify({
-                        type: 'match_found',
-                        battleId: matchResult.battleId,
-                        opponent: matchResult.opponent
-                    }));
-                } else {
-                    // Add ws reference to queue
-                    const queueEntry = matchmakingQueue.find(p => p.username === username);
-                    if (queueEntry) {
-                        queueEntry.ws = ws;
-                    }
-                    
-                    if (matchResult.reason === 'disabled') {
-                        ws.send(JSON.stringify({
-                            type: 'matchmaking_disabled',
-                            message: 'Matchmaking is temporarily disabled for a server update. Please try again in a moment.'
-                        }));
-                    } else {
-                        ws.send(JSON.stringify({
-                            type: 'searching',
-                            message: 'Searching for opponent...',
-                            queuePosition: matchmakingQueue.length
-                        }));
-                    }
-                }
-            } else if (command === "leave_matchmaking") {
-                const index = matchmakingQueue.findIndex(p => p.username === username);
-                if (index !== -1) {
-                    matchmakingQueue.splice(index, 1);
-                    logger.info(`[Matchmaking] ${username} left queue`);
-                    ws.send(JSON.stringify({
-                        type: 'left_queue',
-                        message: 'Left matchmaking queue'
-                    }));
-                }
-            } else if (!gameProcess.killed) {
-                gameProcess.stdin.write(command + '\n');
+            } catch (e) {
+                logger.error(`[Battle] Failed to parse output: ${line}`);
             }
         });
+    };
 
-        ws.on('close', () => {
-            logger.info(`[Server] WebSocket closed for user: ${username}.`);
-            cleanup();
-        });
+    const onProcessClose = (code) => {
+        logger.info(`[Battle WS] Battle #${battleId} process closed`);
+        if (ws.readyState === WebSocket.OPEN) {
+            ws.send(JSON.stringify({ type: 'battle_ended', message: 'Battle ended' }));
+            ws.close(1000, 'Battle ended');
+        }
+        cleanup();
+    };
 
-        ws.on('error', (error) => {
-            logger.error(`[Server] WebSocket error for user ${username}:`, error);
-            cleanup();
-        });
+    const cleanup = () => {
+        battleProcess.stdout.removeListener('data', onData);
+        battleProcess.removeListener('close', onProcessClose);
+    };
+
+    battleProcess.stdout.on('data', onData);
+    battleProcess.once('close', onProcessClose);
+
+    ws.on('message', (message) => {
+        const command = message.toString();
+        logger.info(`[Battle Client -> Server] ${username} in battle #${battleId}: ${command}`);
+        if (!battleProcess.killed) {
+            battleProcess.stdin.write(`${username}:${command}\n`);
+        }
+    });
+
+    ws.on('close', () => {
+        logger.info(`[Battle WS] ${username} disconnected from battle #${battleId}`);
+        cleanup();
+    });
+
+    ws.on('error', (error) => {
+        logger.error(`[Battle WS] Error for ${username} in battle #${battleId}:`, error);
+        cleanup();
     });
 });
 
 app.get('/', (req, res) => {
-    res.redirect(path.join(__dirname, 'public', 'login.html'));
+    // This will be the main entry point to the game now
+    res.sendFile(path.join(__dirname, 'public', 'game.html'));
 });
 
 app.get('/game', (req, res) => {
@@ -386,10 +302,6 @@ app.get('/game', (req, res) => {
     res.sendFile(path.join(__dirname, 'public', 'game.html'));
 });
     
-app.get('/login', (req, res) => {
-    res.sendFile(path.join(__dirname, 'public', 'login.html'));
-});
-
 app.get('/matchmaking', (req, res) => {
     res.sendFile(path.join(__dirname, 'public', 'matchmaking.html'));
     logger.info(`[Server] New Matchmaking attempt`)
@@ -404,46 +316,51 @@ app.use((req, res) => {
 });
 
 // Handle WebSocket upgrade - route to appropriate handler
-server.on('upgrade', (request, socket, head) => {
+server.on('upgrade', async (request, socket, head) => {
     const pathname = url.parse(request.url).pathname;
-    const { query } = url.parse(request.url, true);
     
-    logger.info(`[WebSocket] Upgrade request for path: ${pathname}`);
+    const cookies = cookie.parse(request.headers.cookie || '');
+    const token = cookies.auth_token;
+
+    if (!token) {
+        logger.warn('[WebSocket] Upgrade request rejected: No auth token.');
+        socket.destroy();
+        return;
+    }
+
+    try {
+        const response = await axios.get(`${process.env.AUTH_SERVICE_URL}/api/me`, {
+            headers: {
+                Cookie: `auth_token=${token}`
+            }
+        });
+        request.user = response.data; // Attach user data to the request
+    } catch (error) {
+        logger.warn('[WebSocket] Upgrade request rejected: Invalid token.');
+        socket.destroy();
+        return;
+    }
+
+    const { username } = request.user;
+    logger.info(`[WebSocket] Upgrade request for user ${username} for path: ${pathname}`);
     
     if (pathname === '/battle') {
-        // Battle ws
-        const { battleId, username, pin } = query;
-        
+        const { battleId } = url.parse(request.url, true).query;
         logger.info(`[Battle WS] Upgrade attempt for battle #${battleId} by ${username}`);
         
-        if (!battleId || !username || !pin) {
-            logger.warn('[Battle WS] Missing parameters, destroying socket');
+        if (!battleId) {
+            logger.warn('[Battle WS] Missing battleId, destroying socket');
             socket.destroy();
             return;
         }
         
-        db.get('SELECT * FROM users WHERE username = ? AND pin = ?', [username, pin], (err, user) => {
-            if (err || !user) {
-                logger.warn(`[Battle WS] Invalid credentials for ${username}`);
-                socket.destroy();
-                return;
-            }
-            
-            wss_battle.handleUpgrade(request, socket, head, (ws) => {
-                wss_battle.emit('connection', ws, request, battleId, username);
-            });
+        wss_battle.handleUpgrade(request, socket, head, (ws) => {
+            wss_battle.emit('connection', ws, request, battleId, username);
         });
     } else {
-        // normal ws for every else shitty json communication (json shit was implemented by me, still ass af)
-        const { username, pin } = query;
-        
-        if (!username || !pin) {
-            logger.warn('[WebSocket] Missing credentials, destroying socket');
-            socket.destroy();
-            return;
-        }
-        
+        // Default WebSocket connection
         wss.handleUpgrade(request, socket, head, (ws) => {
+            ws.user = request.user; // Pass user context to the connection handler
             wss.emit('connection', ws, request);
         });
     }
