@@ -1,0 +1,340 @@
+/* General Styles */
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+body {
+    font-family: 'Arial', sans-serif;
+    background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
+    color: #eee;
+    min-height: 100vh;
+}
+
+/* Header */
+header {
+    background: rgba(0, 0, 0, 0.3);
+    padding: 15px 20px;
+    border-bottom: 2px solid #0f3460;
+}
+
+.header-container {
+    max-width: 1200px;
+    margin: 0 auto;
+}
+
+.header-controls {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.stats {
+    display: flex;
+    gap: 20px;
+    align-items: center;
+}
+
+.money-label {
+    font-size: 24px;
+    font-weight: bold;
+    color: #ffd700;
+}
+
+.money-symbol {
+    color: #4CAF50;
+}
+
+.timer-container {
+    display: flex;
+    align-items: center;
+    gap: 5px;
+    font-size: 16px;
+    color: #aaa;
+}
+
+/* Petro Title Section */
+.petro {
+    text-align: center;
+    padding: 20px;
+}
+
+.petro h1 {
+    font-size: 48px;
+    background: linear-gradient(45deg, #4CAF50, #2196F3);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+    margin-bottom: 15px;
+}
+
+#user-display {
+    font-size: 18px;
+    margin: 10px 0;
+    color: #4CAF50;
+}
+
+.btn-danger {
+    background: #f44336;
+    color: white;
+    border: none;
+    padding: 10px 20px;
+    border-radius: 5px;
+    cursor: pointer;
+    font-size: 14px;
+    margin: 5px;
+    transition: background 0.3s;
+}
+
+.btn-danger:hover {
+    background: #d32f2f;
+}
+
+#save-btn, #goto-settings {
+    background: #2196F3;
+    color: white;
+    border: none;
+    padding: 10px 20px;
+    border-radius: 5px;
+    cursor: pointer;
+    font-size: 14px;
+    margin: 5px;
+    transition: background 0.3s;
+}
+
+#save-btn:hover, #goto-settings:hover {
+    background: #1976D2;
+}
+
+/* Navigation */
+.page-navigation {
+    display: flex;
+    justify-content: center;
+    gap: 15px;
+    padding: 20px;
+    background: rgba(0, 0, 0, 0.2);
+}
+
+.page-navigation button {
+    background: #0f3460;
+    color: white;
+    border: 2px solid #4CAF50;
+    padding: 12px 24px;
+    border-radius: 8px;
+    cursor: pointer;
+    font-size: 16px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    transition: all 0.3s;
+}
+
+.page-navigation button:hover {
+    background: #4CAF50;
+    transform: translateY(-2px);
+}
+
+.page-navigation img {
+    width: 24px;
+    height: 24px;
+}
+
+/* Main Content */
+main {
+    max-width: 1200px;
+    margin: 0 auto;
+    padding: 20px;
+}
+
+#home, #shop, #inv, #settings {
+    max-width: 1200px;
+    margin: 0 auto;
+    padding: 20px;
+}
+
+#home h1, #shop h1, #inv h1, #settings h1 {
+    text-align: center;
+    margin-bottom: 30px;
+    font-size: 36px;
+    color: #4CAF50;
+}
+
+/* Play Button */
+.play-btn-container {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    min-height: 400px;
+}
+
+#play-btn {
+    background: linear-gradient(45deg, #4CAF50, #2196F3);
+    color: white;
+    border: none;
+    padding: 20px 50px;
+    border-radius: 50px;
+    font-size: 24px;
+    cursor: pointer;
+    transition: all 0.3s;
+    box-shadow: 0 4px 15px rgba(76, 175, 80, 0.4);
+}
+
+#play-btn:hover {
+    transform: scale(1.05);
+    box-shadow: 0 6px 20px rgba(76, 175, 80, 0.6);
+}
+
+/* Shop Styles */
+.pets-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+    gap: 15px;
+    margin-top: 20px;
+}
+
+.pet-shop-card, .pet-inv-card {
+    background: #2a2a4a;
+    border-radius: 8px;
+    padding: 15px;
+    text-align: center;
+    transition: transform 0.2s;
+}
+
+.pet-shop-card:hover {
+    transform: translateY(-5px);
+}
+
+.btn-buy, .btn-sell {
+    background: #4CAF50;
+    color: white;
+    border: none;
+    padding: 8px 15px;
+    border-radius: 4px;
+    cursor: pointer;
+    font-size: 14px;
+    width: 100%;
+    margin-top: 10px;
+    transition: background 0.3s;
+}
+
+.btn-buy:hover {
+    background: #45a049;
+}
+
+.btn-sell {
+    background: #f44336;
+}
+
+.btn-sell:hover {
+    background: #d32f2f;
+}
+
+/* Inventory Styles */
+#inventory-container {
+    margin-top: 20px;
+}
+
+.inv-buttons {
+    display: flex;
+    justify-content: center;
+    gap: 15px;
+    margin-bottom: 20px;
+}
+
+.btn-warning, .btn-info {
+    background: #ff9800;
+    color: white;
+    border: none;
+    padding: 10px 20px;
+    border-radius: 5px;
+    cursor: pointer;
+    font-size: 14px;
+    transition: background 0.3s;
+}
+
+.btn-warning:hover {
+    background: #f57c00;
+}
+
+.btn-info {
+    background: #2196F3;
+}
+
+.btn-info:hover {
+    background: #1976D2;
+}
+
+/* Message Container */
+#message-container {
+    position: fixed;
+    top: 20px;
+    right: 20px;
+    z-index: 1000;
+    display: none;
+}
+
+#message {
+    background: #4CAF50;
+    color: white;
+    padding: 15px 25px;
+    border-radius: 5px;
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.3);
+    font-size: 16px;
+}
+
+.message-error #message {
+    background: #f44336;
+}
+
+.message-info #message {
+    background: #2196F3;
+}
+
+.message-success #message {
+    background: #4CAF50;
+}
+
+/* Modal Styles */
+.modal-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(0, 0, 0, 0.8);
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    z-index: 1000;
+}
+
+.modal-content {
+    background: #1a1a2e;
+    padding: 30px;
+    border-radius: 10px;
+    max-width: 600px;
+    width: 90%;
+}
+
+.modal-content h3 {
+    color: #4CAF50;
+    margin-bottom: 20px;
+    text-align: center;
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+    .pets-grid {
+        grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+    }
+    
+    .petro h1 {
+        font-size: 32px;
+    }
+    
+    #play-btn {
+        font-size: 18px;
+        padding: 15px 40px;
+    }
+}
