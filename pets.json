@@ -1,0 +1,104 @@
+{
+  "pets": [
+    {
+      "id": 1,
+      "name": "Fire Dragon",
+      "rarity": "legendary",
+      "cost": 5000,
+      "strength": 85,
+      "hp": 120,
+      "dodge": 15,
+      "description": "A fierce dragon that breathes fire"
+    },
+    {
+      "id": 2,
+      "name": "Water Serpent",
+      "rarity": "legendary",
+      "cost": 4500,
+      "strength": 75,
+      "hp": 150,
+      "dodge": 20,
+      "description": "A mystical serpent from the deep"
+    },
+    {
+      "id": 3,
+      "name": "Thunder Wolf",
+      "rarity": "rare",
+      "cost": 2000,
+      "strength": 60,
+      "hp": 100,
+      "dodge": 25,
+      "description": "A wolf infused with lightning"
+    },
+    {
+      "id": 4,
+      "name": "Earth Golem",
+      "rarity": "rare",
+      "cost": 2200,
+      "strength": 70,
+      "hp": 130,
+      "dodge": 5,
+      "description": "A massive stone guardian"
+    },
+    {
+      "id": 5,
+      "name": "Wind Falcon",
+      "rarity": "rare",
+      "cost": 1800,
+      "strength": 55,
+      "hp": 80,
+      "dodge": 35,
+      "description": "A swift bird of prey"
+    },
+    {
+      "id": 6,
+      "name": "Shadow Cat",
+      "rarity": "common",
+      "cost": 500,
+      "strength": 40,
+      "hp": 60,
+      "dodge": 30,
+      "description": "A stealthy feline hunter"
+    },
+    {
+      "id": 7,
+      "name": "Forest Bear",
+      "rarity": "common",
+      "cost": 600,
+      "strength": 50,
+      "hp": 90,
+      "dodge": 10,
+      "description": "A strong and sturdy bear"
+    },
+    {
+      "id": 8,
+      "name": "Ice Fox",
+      "rarity": "common",
+      "cost": 450,
+      "strength": 35,
+      "hp": 65,
+      "dodge": 25,
+      "description": "A cunning arctic fox"
+    },
+    {
+      "id": 9,
+      "name": "Desert Scorpion",
+      "rarity": "common",
+      "cost": 550,
+      "strength": 45,
+      "hp": 55,
+      "dodge": 20,
+      "description": "A venomous desert dweller"
+    },
+    {
+      "id": 10,
+      "name": "Ancient Phoenix",
+      "rarity": "prehistoric",
+      "cost": 10000,
+      "strength": 100,
+      "hp": 180,
+      "dodge": 30,
+      "description": "A legendary bird that never dies"
+    }
+  ]
+}

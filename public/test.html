@@ -1,0 +1,330 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Petro - Matchmaking Test</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 800px;
+            margin: 50px auto;
+            padding: 20px;
+            background-color: #f5f5f5;
+        }
+        .container {
+            background: white;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        h1 {
+            color: #333;
+        }
+        button {
+            background-color: #4CAF50;
+            color: white;
+            padding: 10px 20px;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            margin: 5px;
+        }
+        button:hover {
+            background-color: #45a049;
+        }
+        button:disabled {
+            background-color: #ccc;
+            cursor: not-allowed;
+        }
+        .output {
+            background-color: #f9f9f9;
+            border: 1px solid #ddd;
+            padding: 15px;
+            margin-top: 20px;
+            border-radius: 4px;
+            max-height: 400px;
+            overflow-y: auto;
+        }
+        .log {
+            margin: 5px 0;
+            padding: 5px;
+            border-left: 3px solid #4CAF50;
+            background: white;
+        }
+        .error {
+            border-left-color: #f44336;
+        }
+        .info {
+            border-left-color: #2196F3;
+        }
+        input {
+            padding: 8px;
+            margin: 5px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🐾 Petro Matchmaking Test</h1>
+        
+        <div>
+            <h3>1. Authentication</h3>
+            <input type="text" id="username" placeholder="Username" value="testuser">
+            <input type="password" id="password" placeholder="Password" value="testpass">
+            <button onclick="register()">Register</button>
+            <button onclick="login()">Login</button>
+        </div>
+
+        <div>
+            <h3>2. Shop</h3>
+            <button onclick="getShop()">View Shop</button>
+            <button onclick="buyPet(6)">Buy Shadow Cat ($500)</button>
+            <button onclick="viewInventory()">View Inventory</button>
+        </div>
+
+        <div>
+            <h3>3. Matchmaking</h3>
+            <button onclick="joinMatchmaking()">Join Queue</button>
+            <button onclick="leaveMatchmaking()">Leave Queue</button>
+            <button onclick="connectWebSocket()">Connect WebSocket</button>
+        </div>
+
+        <div class="output" id="output"></div>
+    </div>
+
+    <script>
+        let token = null;
+        let ws = null;
+
+        const API_BASE = 'http://localhost:3000/api';
+        const WS_URL = 'ws://localhost:3000';
+
+        function log(message, type = 'log') {
+            const output = document.getElementById('output');
+            const logEntry = document.createElement('div');
+            logEntry.className = `log ${type}`;
+            logEntry.textContent = `[${new Date().toLocaleTimeString()}] ${message}`;
+            output.appendChild(logEntry);
+            output.scrollTop = output.scrollHeight;
+        }
+
+        async function register() {
+            const username = document.getElementById('username').value;
+            const password = document.getElementById('password').value;
+
+            try {
+                const response = await fetch(`${API_BASE}/auth/register`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ username, password })
+                });
+                const data = await response.json();
+                
+                if (response.ok) {
+                    token = data.token;
+                    log(`✅ Registered as ${username}. Balance: $${data.money}`, 'info');
+                } else {
+                    log(`❌ Error: ${data.error}`, 'error');
+                }
+            } catch (error) {
+                log(`❌ Error: ${error.message}`, 'error');
+            }
+        }
+
+        async function login() {
+            const username = document.getElementById('username').value;
+            const password = document.getElementById('password').value;
+
+            try {
+                const response = await fetch(`${API_BASE}/auth/login`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ username, password })
+                });
+                const data = await response.json();
+                
+                if (response.ok) {
+                    token = data.token;
+                    log(`✅ Logged in as ${username}. Balance: $${data.money}`, 'info');
+                } else {
+                    log(`❌ Error: ${data.error}`, 'error');
+                }
+            } catch (error) {
+                log(`❌ Error: ${error.message}`, 'error');
+            }
+        }
+
+        async function getShop() {
+            if (!token) {
+                log('❌ Please login first', 'error');
+                return;
+            }
+
+            try {
+                const response = await fetch(`${API_BASE}/shop/pets`, {
+                    headers: { 'Authorization': `Bearer ${token}` }
+                });
+                const data = await response.json();
+                
+                if (response.ok) {
+                    log(`🏪 Shop has ${data.pets.length} pets available`, 'info');
+                    data.pets.forEach(pet => {
+                        log(`  - ${pet.name} (${pet.rarity}) - $${pet.cost} | STR: ${pet.strength} HP: ${pet.hp}`, 'info');
+                    });
+                } else {
+                    log(`❌ Error: ${data.error}`, 'error');
+                }
+            } catch (error) {
+                log(`❌ Error: ${error.message}`, 'error');
+            }
+        }
+
+        async function buyPet(petId) {
+            if (!token) {
+                log('❌ Please login first', 'error');
+                return;
+            }
+
+            try {
+                const response = await fetch(`${API_BASE}/shop/buy`, {
+                    method: 'POST',
+                    headers: { 
+                        'Authorization': `Bearer ${token}`,
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({ petId })
+                });
+                const data = await response.json();
+                
+                if (response.ok) {
+                    log(`✅ Bought ${data.pet.name}! New balance: $${data.newBalance}`, 'info');
+                } else {
+                    log(`❌ Error: ${data.error}`, 'error');
+                }
+            } catch (error) {
+                log(`❌ Error: ${error.message}`, 'error');
+            }
+        }
+
+        async function viewInventory() {
+            if (!token) {
+                log('❌ Please login first', 'error');
+                return;
+            }
+
+            try {
+                const response = await fetch(`${API_BASE}/inventory`, {
+                    headers: { 'Authorization': `Bearer ${token}` }
+                });
+                const data = await response.json();
+                
+                if (response.ok) {
+                    log(`🎒 You have ${data.inventory.length} pets`, 'info');
+                    data.inventory.forEach(pet => {
+                        log(`  - ${pet.name} (Lvl ${pet.level}) | STR: ${pet.strength} HP: ${pet.hp}`, 'info');
+                    });
+                } else {
+                    log(`❌ Error: ${data.error}`, 'error');
+                }
+            } catch (error) {
+                log(`❌ Error: ${error.message}`, 'error');
+            }
+        }
+
+        async function joinMatchmaking() {
+            if (!token) {
+                log('❌ Please login first', 'error');
+                return;
+            }
+
+            try {
+                const response = await fetch(`${API_BASE}/matchmaking/join`, {
+                    method: 'POST',
+                    headers: { 'Authorization': `Bearer ${token}` }
+                });
+                const data = await response.json();
+                
+                if (response.ok) {
+                    if (data.matched) {
+                        log(`✅ Match found! ID: ${data.matchId}, Opponent: ${data.opponent}`, 'info');
+                        log('🔌 Now you should connect via WebSocket!', 'info');
+                    } else {
+                        log(`⏳ ${data.message}`, 'info');
+                    }
+                } else {
+                    log(`❌ Error: ${data.error}`, 'error');
+                }
+            } catch (error) {
+                log(`❌ Error: ${error.message}`, 'error');
+            }
+        }
+
+        async function leaveMatchmaking() {
+            if (!token) {
+                log('❌ Please login first', 'error');
+                return;
+            }
+
+            try {
+                const response = await fetch(`${API_BASE}/matchmaking/leave`, {
+                    method: 'POST',
+                    headers: { 'Authorization': `Bearer ${token}` }
+                });
+                const data = await response.json();
+                
+                if (response.ok) {
+                    log(`✅ Left matchmaking queue`, 'info');
+                } else {
+                    log(`❌ Error: ${data.error}`, 'error');
+                }
+            } catch (error) {
+                log(`❌ Error: ${error.message}`, 'error');
+            }
+        }
+
+        function connectWebSocket() {
+            if (!token) {
+                log('❌ Please login first', 'error');
+                return;
+            }
+
+            if (ws) {
+                log('⚠️ WebSocket already connected', 'info');
+                return;
+            }
+
+            ws = new WebSocket(WS_URL);
+
+            ws.onopen = () => {
+                log('🔌 WebSocket connected!', 'info');
+                // Authenticate via WebSocket
+                ws.send(JSON.stringify({ type: 'auth', token: token }));
+            };
+
+            ws.onmessage = (event) => {
+                const data = JSON.parse(event.data);
+                log(`📩 WS Message: ${data.type}`, 'info');
+                console.log('WebSocket message:', data);
+                
+                if (data.type === 'match_found') {
+                    log(`⚔️ Match found! Opponent: ${data.match.opponent}`, 'info');
+                } else if (data.type === 'match_start') {
+                    log(`🎮 Match starting! Players ready with bets.`, 'info');
+                }
+            };
+
+            ws.onclose = () => {
+                log('🔌 WebSocket disconnected', 'info');
+                ws = null;
+            };
+
+            ws.onerror = (error) => {
+                log(`❌ WebSocket error: ${error.message}`, 'error');
+            };
+        }
+    </script>
+</body>
+</html>
