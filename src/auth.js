@@ -5,16 +5,17 @@ const users = new Map();
 
 /**
  * Hash a password using SHA-256
+ * NOTE: In production, use bcrypt, scrypt, or argon2 for proper password hashing
  */
 function hashPassword(password) {
   return crypto.createHash('sha256').update(password).digest('hex');
 }
 
 /**
- * Generate a simple token for authentication
+ * Generate a secure random token for authentication
  */
 function generateToken(username) {
-  return crypto.createHash('sha256').update(username + Date.now()).digest('hex');
+  return crypto.randomBytes(32).toString('hex');
 }
 
 /**

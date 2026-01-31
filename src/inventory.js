@@ -32,7 +32,7 @@ function addPet(username, petId) {
   
   // Create a unique instance of the pet
   const petInstance = {
-    instanceId: Date.now() + Math.random(),
+    instanceId: crypto.randomUUID(),
     ...pet,
     level: 1,
     purchasePrice: pet.cost

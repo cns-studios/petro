@@ -1,5 +1,7 @@
 const WebSocket = require('ws');
 const auth = require('./auth');
+const money = require('./money');
+const crypto = require('crypto');
 
 // Matchmaking queue
 const matchmakingQueue = [];
@@ -52,7 +54,7 @@ function tryMatch() {
     const player1 = matchmakingQueue.shift();
     const player2 = matchmakingQueue.shift();
     
-    const matchId = Date.now() + '-' + Math.random().toString(36).substr(2, 9);
+    const matchId = Date.now() + '-' + crypto.randomBytes(6).toString('hex');
     
     const match = {
       matchId,
@@ -155,8 +157,6 @@ function completeMatch(matchId, winner) {
   match.completedAt = new Date();
   
   // Handle betting payouts
-  const money = require('./money');
-  
   if (winner === match.player1) {
     // Player 1 wins, deduct from player 2 and add to player 1
     if (match.player2Bet > 0) {

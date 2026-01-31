@@ -26,7 +26,13 @@ app.use(express.static('public'));
 
 // Auth middleware to verify token
 function authMiddleware(req, res, next) {
-  const token = req.headers.authorization?.replace('Bearer ', '');
+  const authHeader = req.headers.authorization;
+  
+  if (!authHeader || !authHeader.startsWith('Bearer ')) {
+    return res.status(401).json({ error: 'Authentication required' });
+  }
+  
+  const token = authHeader.substring(7); // Remove 'Bearer ' prefix
   
   if (!token) {
     return res.status(401).json({ error: 'Authentication required' });
