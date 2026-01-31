@@ -41,9 +41,9 @@ Petro Online is a web-based game inspired by creature-collecting games like Pok�
 
 ### Backend
 - **Node.js & Express** - Web server and HTTP routing
-- **Python 3** - Game logic and battle engine
-- **SQLite3** - User accounts and game state database
-- **WebSocket (ws)** - Real-time bidirectional communication
+- **JavaScript Services** - Game logic (auth, shop, inventory, matchmaking)
+- **In-Memory Storage** - User accounts and game state (can be replaced with database)
+- **WebSocket (ws)** - Real-time bidirectional communication for battles
 - **dotenv** - Environment configuration
 
 ### Frontend
@@ -55,38 +55,31 @@ Petro Online is a web-based game inspired by creature-collecting games like Pok�
 
 ```
 Petro/
-├── server.js                 # Main Node.js server
+├── server.js                 # Main Node.js + WebSocket server
 ├── package.json              # npm dependencies
+├── pets.json                 # Pet definitions with stats
+├── API_DOCUMENTATION.md      # Complete API documentation
 ├── public/                   # Frontend files
 │   ├── index.html
 │   ├── login.html           # Authentication UI
 │   ├── game.html            # Main game interface
 │   ├── battle.html          # Battle UI
 │   ├── matchmaking.html     # Matchmaking queue
+│   ├── test.html            # Test interface for API
 │   ├── style.css
-│   ├── battle.css
-│   └── src/
-│       ├── login.js         # Authentication logic
-│       ├── game.js          # Game client logic
-│       ├── battle.js        # Battle client logic
-│       └── matchmaking.js   # Matchmaking client logic
-├── src/                     # Backend Python game logic
-│   ├── logic.py             # State management & persistence
-│   ├── shop.py              # Game class & shop mechanics
-│   ├── ingame.py            # Battle system implementation
-│   ├── inventory.py         # Pet inventory management
-│   └── assets/
-│       └── pets.py          # Pet definitions & stats
-├── db/                      # Database directory
-│   └── users.db             # SQLite database
-└── bannednames.txt          # Banned username list
+│   └── battle.css
+└── src/                     # Backend JavaScript services
+    ├── auth.js              # Authentication service
+    ├── money.js             # Money management
+    ├── shop.js              # Shop buy/sell logic
+    ├── inventory.js         # Pet inventory management
+    └── matchmaking.js       # 1v1 matchmaking + WebSocket
 ```
 
 ## Installation
 
 ### Prerequisites
 - Node.js (v14 or higher)
-- Python 3
 - npm or pnpm
 
 ### Setup
@@ -128,27 +121,40 @@ docker run -p 3000:3000 petro
 
 ## Game Architecture
 
-The game uses a multi-process architecture:
+The game uses a service-oriented architecture:
 
-- **Frontend** (HTML/CSS/JavaScript) communicates with the backend via WebSocket
-- **Node.js Server** handles user authentication, WebSocket connections, and game state management
-- **Python Subprocesses** run the core game logic (shop mechanics, battle system, inventory management)
-- **SQLite Database** persists user accounts and game state
+- **Frontend** (HTML/CSS/JavaScript) communicates with the backend via REST API and WebSocket
+- **Node.js Server** (server.js) handles HTTP routing and WebSocket connections
+- **JavaScript Services** (src/) provide modular game logic:
+  - `auth.js` - User authentication and token management
+  - `money.js` - Virtual currency system
+  - `shop.js` - Pet buying/selling with 70% resale
+  - `inventory.js` - Pet collection management
+  - `matchmaking.js` - 1v1 player matching and WebSocket coordination
+- **In-Memory Storage** stores user accounts and game state (can be replaced with a database)
 
 ### Real-time Communication
 
-- WebSocket connections handle gameplay updates
-- JSON messaging protocol for client-server communication
-- Separate WebSocket server for battle matchmaking
+- **REST API** for authentication, shop, inventory operations
+- **WebSocket** upgrade after successful matchmaking
+- JSON messaging protocol for all communication
+- Integrated WebSocket server for battle coordination
 
 ## Development
 
 ### Important Files
 
-- `server.js` - Main server entry point
-- `public/src/game.js` - Client-side game logic
-- `src/ingame.py` - Server-side battle system
-- `src/assets/pets.py` - Pet definitions and stats
+- `server.js` - Main server entry point with Express and WebSocket
+- `pets.json` - Pet definitions with stats (cost, strength, HP, dodge)
+- `src/auth.js` - Authentication service
+- `src/shop.js` - Shop service (buy/sell pets)
+- `src/inventory.js` - Inventory management
+- `src/matchmaking.js` - Matchmaking and battle coordination
+- `API_DOCUMENTATION.md` - Complete API reference
+
+### API Documentation
+
+See [API_DOCUMENTATION.md](API_DOCUMENTATION.md) for complete REST API and WebSocket protocol documentation.
 
 ### Environment Variables
 
