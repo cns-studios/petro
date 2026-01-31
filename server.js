@@ -3,6 +3,7 @@ const http = require('http');
 const WebSocket = require('ws');
 const path = require('path');
 const dotenv = require('dotenv');
+const rateLimit = require('express-rate-limit');
 
 // Load environment variables
 dotenv.config();
@@ -20,9 +21,26 @@ const wss = new WebSocket.Server({ server });
 
 const PORT = process.env.PORT || 3000;
 
+// Create rate limiter for general API endpoints
+const apiLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000, // 15 minutes
+  max: 100, // Limit each IP to 100 requests per windowMs
+  message: 'Too many requests from this IP, please try again later.'
+});
+
+// Create stricter rate limiter for authentication endpoints
+const authLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000, // 15 minutes
+  max: 10, // Limit each IP to 10 auth requests per windowMs
+  message: 'Too many authentication attempts, please try again later.'
+});
+
 // Middleware
 app.use(express.json());
 app.use(express.static('public'));
+
+// Apply rate limiter to all API routes
+app.use('/api/', apiLimiter);
 
 // Auth middleware to verify token
 function authMiddleware(req, res, next) {
@@ -55,7 +73,7 @@ function authMiddleware(req, res, next) {
  * POST /api/auth/register
  * Register a new user
  */
-app.post('/api/auth/register', (req, res) => {
+app.post('/api/auth/register', authLimiter, (req, res) => {
   try {
     const { username, password } = req.body;
     const result = auth.register(username, password);
@@ -69,7 +87,7 @@ app.post('/api/auth/register', (req, res) => {
  * POST /api/auth/login
  * Login an existing user
  */
-app.post('/api/auth/login', (req, res) => {
+app.post('/api/auth/login', authLimiter, (req, res) => {
   try {
     const { username, password } = req.body;
     const result = auth.login(username, password);
