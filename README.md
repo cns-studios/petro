@@ -145,4 +145,6 @@ Before you choose a ToDo to work on, please **check the PRs first**, to see if s
 
 ### Project Plan
 
+[View in Browser](https://i.imgur.com/EXiKq3r.png)
+
 ![alt text](https://i.imgur.com/EXiKq3r.png)
