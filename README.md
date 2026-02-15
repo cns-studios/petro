@@ -30,68 +30,11 @@ To keep things organized and structured, the focus lies on creating the Main Ing
 - Pets assigned to the Static Accounts
 - Money assigned to the Static Accounts
 
-The Main Ingame Logic is explained further beneath the ToDos Section, but here is a quick overview, for the most important concepts that need to be built first.
+The Main Ingame Logic is explained further beneath the ToDos Section (Image), but here is a quick overview.
 
 `Matchmaking (1v1)` > `Pregame Logic` > `Ingame Logic` > `Postgame Logic`
 
 `Other` Cases
-
-### Matchmaking
-
-**Cant Start** when: user has less than 3 pets
-
-`Play` button on homepage > Matchmaking screen > User in queue > queue logic (2 players per match) > _pregame_ screen
-
-### Pregame
-
-**Bets** $0 - `players max balance`
-
-**Pets** Select Three Pets (from Inventory)
-
-**Specials** 3 Slots for `Spells` and `Jokers` (from Inventory). Can be emtpy selection
-
-**Countdown**
-
-### Ingame
-
-Most complicated Part. Turn based Game.
-
-On each Turn, Player can utilize a Pet and choose to activate a Spell or Joker. Each Pet can either `defend an attack` or `attack`. When defening, damage from the opponent gets observed. When attacking, damage is dealed to the opponent. If opponent attacks after been attacked, damage is observed by the pet with the most health
-
-
-Pets can have different Damage Options and Defend Options. Some can defend fire damage but can only deal long range damage.
-
-Some deal fire damage, and can defend many types of damage.
-
-Look below for a detailed explanation.
-
-You Loose when all your Pets are dead. You Win if your opponent dies.
-
-### Postgame
-
-####  When won:
-
-Rewards!
-
-**Money** is calculated from remaining HP of all Pets
-
-> Money = HP * 0.1
-
-You also get one random **Special** from your opponent, which can either be a Joker or Spell
-
-And **+6 Money** added, regardless how much HP you had left on your Pets
-
-==> Return to Home, clean up Game process
-
-#### When lost:
-
-**+2 Money**
-
-### Others
-
-**One/Both Player leaves** > cleanup process, return remaining player to home
-
-**Passive Income** > `+1 Money` each 5 Mins if user is online (on website)
 
 
 # Contribution
