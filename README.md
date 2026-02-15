@@ -42,7 +42,9 @@ The Main Ingame Logic is explained further beneath the ToDos Section (Image), bu
 Basic Infos for your convenience, so you know what to do, if you want to help working on this Project
 
 
-**Info** Graphic doesnt matter! Focus lies on the logic behind it, not how it looks.
+**Info** 
+
+raphic doesnt matter! Focus lies on the logic behind it, not how it looks.
 
 ## Commit Schema
 
