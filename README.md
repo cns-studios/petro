@@ -44,7 +44,7 @@ Basic Infos for your convenience, so you know what to do, if you want to help wo
 
 **Info** 
 
-raphic doesnt matter! Focus lies on the logic behind it, not how it looks.
+Graphic doesnt matter! Focus lies on the logic behind it, not how it looks.
 
 ## Commit Schema
 
