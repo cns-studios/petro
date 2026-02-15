@@ -66,7 +66,7 @@ Before you choose a ToDo to work on, please **check the PRs first**, to see if s
 
 > Open a new PR in a _seperate branch_ for each ToDo
 
-- [ ] Init
+- [x] Init
 - [ ] Matchmaking
 - [ ] Pregame
 - [ ] Connect to [CNS Auth](https://github.com/cns-studios/auth)
